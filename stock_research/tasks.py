@@ -18,10 +18,10 @@ class StockAnalysisTasks:
         )
     
     @task
-    def research(self, research_analyst_agent) -> Task:
+    def research(self, market_research_analyst_agent) -> Task:
         return Task(
             config=self.tasks_config['research'],
-            agent=research_analyst_agent,
+            agent=market_research_analyst_agent,
         )
     
     # @task
@@ -45,9 +45,10 @@ class StockAnalysisTasks:
             agent=investment_advisor_agent,
         )
     
+    # NEW TASKS
     @task
-    def find_options(self, research_analyst_agent) -> Task:
+    def gather_stock_history(self, stock_history_agent) -> Task:
         return Task(
-            config=self.tasks_config['options'],
-            agent=research_analyst_agent
+            config=self.tasks_config['gather_stock_history'],
+            agent=stock_history_agent,
         )

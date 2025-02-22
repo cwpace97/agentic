@@ -1,15 +1,16 @@
 import os
+import json
 import pytz
 import pandas as pd
 from datetime import timedelta, timezone, datetime as dt
-from typing import Any, Optional
+from typing import Optional
 
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
 from alpaca.trading import TradingClient, GetOptionContractsRequest, AssetStatus, ContractType
 from alpaca.data.historical.stock import StockHistoricalDataClient
-from alpaca.data.requests import StockBarsRequest, OptionBarsRequest
+from alpaca.data.requests import StockBarsRequest, StockLatestTradeRequest, OptionBarsRequest
 from alpaca.data.timeframe import TimeFrame, TimeFrameUnit
 
 from dotenv import load_dotenv
@@ -48,6 +49,20 @@ class AlpacaClient():
 
         return start_of_week
     
+    def get_end_of_next_week(self, date: Optional[dt] = None):
+        if date is None:
+            date = dt.now(timezone.utc)
+        # Convert to Eastern Time
+        eastern = pytz.timezone("America/New_York")
+        date_et = date.replace(tzinfo=pytz.utc).astimezone(eastern)
+
+        # Calculate the beginning of the week (Monday at 8 AM ET)
+        next_week = date_et + +timedelta(weeks=1) + timedelta(days=(5-date_et.weekday()))  # Move to Next Friday
+        next_week = next_week.replace(hour=23, minute=0, second=0, microsecond=0)  # Set to 11 PM
+        print(next_week)
+
+        return next_week
+
     def get_stock_history_bars(self, ticker)-> pd.DataFrame:
         req = StockBarsRequest(
             symbol_or_symbols=ticker,
@@ -185,31 +200,56 @@ class AlpacaClient():
         
         return fig
     
-    def get_available_options(self, ticker, contract_type: Optional[str] = None):
+    def get_latest_trade_price(self, ticker):
+        stock_req = StockLatestTradeRequest(
+            symbol_or_symbols=ticker
+        )
+        res = self.shdc.get_stock_latest_trade(stock_req)
+        return res.get(ticker).price
+
+    def get_available_options(self, ticker, contract_type: Optional[str] = None) -> pd.DataFrame:
         if ticker is None:
             return []
         contract_lookup = {
             "call": ContractType.CALL,
             "put": ContractType.PUT,
         }
+        current_price = self.get_latest_trade_price(ticker)
+
+        page_token_iterator = None
+        buffer = 0.01 #%
         req = GetOptionContractsRequest(
             underlying_symbol=[ticker],
             root_symbol=ticker, # specify root symbol
-            status=AssetStatus.ACTIVE,                           
-            expiration_date=None, # specify expiration date (specified date + 1 day range)
-            expiration_date_gte=None, # date object
-            expiration_date_lte=None, # or string (YYYY-MM-DD)
+            status=AssetStatus.ACTIVE,    
+
+            strike_price_gte = str(current_price*(1-buffer)),
+            strike_price_lte = str(current_price*(1+buffer)),
+            expiration_date_gte=(dt.today() + timedelta(days=1)).date(), #TOMORROW, or None
+            expiration_date_lte=self.get_end_of_next_week().date(),
             type=contract_lookup.get(contract_type, None),
-            limit=5, #TEMP	
+
+            # iterator
+            limit=1000,
+            page_token=page_token_iterator
         )
-        return self.tc.get_option_contracts(req)
+        res = self.tc.get_option_contracts(req)
+        json_obj = json.loads(res.model_dump_json())
+        df = pd.DataFrame(json_obj.get("option_contracts", []))
+        while json_obj.get("next_page_token") is not None:
+            page_token_iterator = json_obj.get("next_page_token", None)
+            res = self.tc.get_option_contracts(req)
+            json_obj = json.loads(res.model_dump_json())
+            df = pd.concat([df, pd.DataFrame(json_obj.get("option_contracts", []))], ignore_index=True)
+        return df
 
 if __name__ == "__main__":
     print("## Initiating...")
     client = AlpacaClient()
-    spy_df = client.get_stock_history_bars(
-        ticker="SPY"
-    )
-    fig = client.plot_candlestick_chart(spy_df)
-    fig.show()
-
+    # spy_df = client.get_stock_history_bars(
+    #     ticker="SPY"
+    # )
+    # fig = client.plot_candlestick_chart(spy_df)
+    # fig.show()
+    print(client.get_available_options("SPY"))
+    

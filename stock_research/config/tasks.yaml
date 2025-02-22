@@ -20,13 +20,14 @@ research:
     any notable shifts in market sentiment, and potential impacts on the stock. Also make sure to return the stock ticker as {company_stock}.
     Make sure to use the most recent data as possible.
 
-options:
+gather_stock_history:
   description: >
-    Find the current list of options that are trading for {company_stock}. 
-    This should be all available contracts for the stock that are available over the next 7 days. 
+    You will use the `get_stock_history_bars` function from the `alpaca_tools` class, passing in the company_stock 
+    as an input into the function string.
   expected_output: >
-    A table of options with columns including type, strike price, expiry date, the 5 greeks (delta, gamma, theta, vega, rho), 
-    open interest, bid price, ask price, IV and volume
+    A dataframe containing 'open', 'high', 'low', 'close', 'volume', 'Bollinger_UpperBand', 'Bollinger_LowerBand', 'RSI' 
+    columns for the given company_stock over at least the previous week, at 5 minute intervals. 
+    Make sure to consider all of the data together
 
 filings_analysis:
   description: >

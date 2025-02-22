@@ -3,3 +3,5 @@
 myvenv/
 outputs/
 *__pycache__*
+db/
+output.md

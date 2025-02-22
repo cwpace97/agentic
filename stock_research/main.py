@@ -17,27 +17,26 @@ class CustomCrew:
     def run(self):
         # Define custom agents
         agents = StockAnalysisAgents(self.ticker)
-        financial_agent = agents.financial_agent()
-        research_analyst_agent = agents.research_analyst_agent()
-        # financial_analyst_agent = agents.financial_analyst_agent()
-        investment_advisor_agent = agents.investment_advisor_agent()
+        # financial_agent = agents.financial_agent()
+        market_research_analyst_agent = agents.market_research_analyst_agent()
+        # # financial_analyst_agent = agents.financial_analyst_agent()
+        # investment_advisor_agent = agents.investment_advisor_agent()
+        stock_history_agent = agents.stock_history_agent()
 
         #Define custom tasks
         tasks = StockAnalysisTasks()
-        financial_analysis_task = tasks.financial_analysis(financial_agent)
-        research_task = tasks.research(research_analyst_agent)
-        filings_analysis_task = tasks.filings_analysis(financial_agent)
-        recommend_task = tasks.recommend(investment_advisor_agent)
-
-        # NEW
-        options_task = tasks.find_options(research_analyst_agent)
+        # financial_analysis_task = tasks.financial_analysis(financial_agent)
+        research_task = tasks.research(market_research_analyst_agent)
+        # filings_analysis_task = tasks.filings_analysis(financial_agent)
+        # recommend_task = tasks.recommend(investment_advisor_agent)
+        gather_stock_history = tasks.gather_stock_history(stock_history_agent)
 
         # Define your custom crew here
         crew = Crew(
-            # agents=[financial_agent, research_analyst_agent, investment_advisor_agent],
+            # agents=[financial_agent, market_research_analyst_agent, investment_advisor_agent],
             # tasks=[financial_analysis_task, research_task, filings_analysis_task, recommend_task],
-            agents=[research_analyst_agent],
-            tasks=[options_task],
+            agents=[stock_history_agent, market_research_analyst_agent],
+            tasks=[research_task, gather_stock_history],
             process=Process.sequential,
             verbose=True,
         )

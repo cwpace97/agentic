@@ -5,6 +5,7 @@ from crewai.project import agent, crew
 
 from tools.calculator_tool import CalculatorTool
 from tools.sec_analysis_tool import SEC10KTool #, SEC10QTool
+from tools.alpaca_tools import get_available_options, get_stock_history_bars
 
 from crewai_tools import WebsiteSearchTool, ScrapeWebsiteTool, TXTSearchTool
 from langchain_openai import ChatOpenAI
@@ -36,7 +37,7 @@ class StockAnalysisAgents:
         )
 
     @agent
-    def research_analyst_agent(self) -> Agent:
+    def market_research_analyst_agent(self) -> Agent:
         return Agent(
             config=self.agents_config['research_analyst'],
             verbose=True,
@@ -45,24 +46,9 @@ class StockAnalysisAgents:
                 ScrapeWebsiteTool(),
                 # WebsiteSearchTool(), 
                 # SEC10QTool(self.ticker),
-                SEC10KTool(self.ticker),
+                # SEC10KTool(self.ticker),
             ]
         )
-    
-    # @agent
-    # def financial_analyst_agent(self) -> Agent:
-    #     return Agent(
-    #         config=self.agents_config['financial_analyst'],
-    #         verbose=True,
-    #         llm=self.llm,
-    #         tools=[
-    #             ScrapeWebsiteTool(),
-    #             WebsiteSearchTool(),
-    #             CalculatorTool(),
-    #             SEC10QTool(),
-    #             SEC10KTool(),
-    #         ]
-    #     )
     
     @agent
     def investment_advisor_agent(self) -> Agent:
@@ -77,12 +63,14 @@ class StockAnalysisAgents:
             ]
         )    
     
-    @crew
-    def crew(self) -> Crew:
-        """Creates the Stock Analysis"""
-        return Crew(
-            agents=self.agents,  
-            tasks=self.tasks, 
-            process=Process.sequential,
+    @agent
+    def stock_history_agent(self) -> Agent:
+        return Agent(
+            config = self.agents_config['stock_history_agent'],
             verbose=True,
+            llm=self.llm,
+            tools=[
+                get_stock_history_bars,
+                get_available_options
+            ]
         )
